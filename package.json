@@ -7,7 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "deploy": "ng build --prod --base-href=https://dwijacharyapsspl.github.io/pdf-viewer-angular/ && gh-pages -d dist/pdf-viewer"
+    "deploy": "ng build --base-href=https://dwijacharyapsspl.github.io/pdf-viewer-angular/ && gh-pages -d dist/pdf-viewer"
   },
   "private": true,
   "dependencies": {
