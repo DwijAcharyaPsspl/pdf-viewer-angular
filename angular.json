@@ -36,7 +36,7 @@
               "src/styles.scss"
             ],
             "scripts": [],
-            "baseHref": "pdf-viewer-angular"
+            "baseHref": "/pdf-viewer-angular/"
           },
           "configurations": {
             "production": {
