@@ -16,36 +16,112 @@
           Next
         </button>
       </div>
-
+      
+      <div class="middle-controls">
+        <input 
+          #searchInput 
+          type="text" 
+          placeholder="Search text..." 
+          class="search-input"
+          [(ngModel)]="searchText"
+          (keypress)="onSearchKeyPress($event)"
+          (focus)="isSearching = true"
+          (blur)="isSearching = false"
+        />
+        <button (click)="performSearch()" class="btn btn-search">Search</button>
+        <button 
+          (click)="clearSearch()" 
+          class="btn btn-clear"
+          *ngIf="searchText"
+        >
+          Clear
+        </button>
+      </div>
+      
       <div class="right-controls">
         <button (click)="zoomOut()" class="btn">Zoom Out</button>
         <span class="zoom-info">{{ (zoom * 100).toFixed(0) }}%</span>
         <button (click)="zoomIn()" class="btn">Zoom In</button>
-  
         <button (click)="rotate()" class="btn">Rotate</button>
       </div>
-
     </div>
   </div>
 
-  <div class="pdf-container">
+  <div class="pdf-container" #pdfContainer>
     <pdf-viewer
       [src]="pdfSrc"
       [page]="page"
       [zoom]="zoom"
       [rotation]="rotation"
-      [show-all]="true"
-      [original-size]="false"
-      [render-text]="true"
-      [fit-to-page]="true"
-      [autoresize]="true"
+      [show-all]="false"
+      [original-size]="true"
+      [render-text]="false"
+      [fit-to-page]="false"
+      [autoresize]="false"
       (after-load-complete)="afterLoadComplete($event)"
       (error)="onError($event)"
       style="width: 100%; height: 100%;"
+      #pdfComponent
     ></pdf-viewer>
   </div>
 
+  <!-- Gesture UI Elements -->
+  <div class="notification" [class.show]="showNotification">
+    {{ notification }}
+  </div>
+
+  <div class="gesture-indicator" [class.show]="showGestureIndicator">
+    {{ gestureIndicator }}
+  </div>
+
+  <div class="large-page-number" [class.show]="showLargePageNumber">
+    {{ largePageNumber }}
+  </div>
+
+  <div class="pan-mode-indicator" [class.show]="isPanMode">
+    PAN MODE - Drag to move
+  </div>
+
+  <div class="pan-grid" [class.show]="isPanMode"></div>
+
+  <div class="two-finger-indicator" [class.show]="twoFingerIndicatorVisible">
+    Two-Finger Pan Mode
+  </div>
+
+  <!-- Edge flash feedback -->
+  <div class="edge-flash left" [class.show]="leftEdgeFlash"></div>
+  <div class="edge-flash right" [class.show]="rightEdgeFlash"></div>
+
+  <!-- Tutorial overlay -->
+  <div class="tutorial-overlay" [class.show]="showTutorial" *ngIf="showTutorial">
+    <div class="tutorial-title">Gesture Controls</div>
+    <div class="tutorial-grid">
+      <div class="tutorial-item">
+        <div class="tutorial-icon">⬅️</div>
+        <div class="tutorial-label">Swipe Left</div>
+        <div class="tutorial-desc">Next Page</div>
+      </div>
+      <div class="tutorial-item">
+        <div class="tutorial-icon">➡️</div>
+        <div class="tutorial-label">Swipe Right</div>
+        <div class="tutorial-desc">Previous Page</div>
+      </div>
+      <div class="tutorial-item">
+        <div class="tutorial-icon">⬆️</div>
+        <div class="tutorial-label">Swipe Up</div>
+        <div class="tutorial-desc">Zoom In</div>
+      </div>
+      <div class="tutorial-item">
+        <div class="tutorial-icon">⬇️</div>
+        <div class="tutorial-label">Swipe Down</div>
+        <div class="tutorial-desc">Zoom Out</div>
+      </div>
+    </div>
+    <button class="tutorial-skip" (click)="hideTutorial()">Got it!</button>
+  </div>
+
   <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
     <p>Loading PDF...</p>
     <p style="font-size: 14px; margin-top: 10px;">Path: {{ pdfSrc }}</p>
   </div>

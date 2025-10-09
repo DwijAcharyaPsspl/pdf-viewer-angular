@@ -1,113 +1,772 @@
+// .pdf-viewer-container {
+//   display: flex;
+//   flex-direction: column;
+//   height: 100vh;
+//   font-family: Arial, sans-serif;
+// }
+
+// .toolbar {
+//   background-color: #2c3e50;
+//   color: white;
+//   padding: 15px;
+//   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+// }
+
+// .toolbar h2 {
+//   margin: 0 0 15px 0;
+//   font-size: 24px;
+// }
+
+// .file-upload {
+//   margin-bottom: 15px;
+// }
+
+// .file-upload input[type="file"] {
+//   display: none;
+// }
+
+// .controls {
+//   display: flex;
+//   gap: 10px;
+//   align-items: center;
+//   flex-wrap: wrap;
+// }
+
+// .btn {
+//   background-color: #3498db;
+//   color: white;
+//   border: none;
+//   padding: 8px 16px;
+//   border-radius: 4px;
+//   cursor: pointer;
+//   font-size: 14px;
+//   transition: background-color 0.3s;
+// }
+
+// .btn:hover:not(:disabled) {
+//   background-color: #2980b9;
+// }
+
+// .btn:disabled {
+//   background-color: #95a5a6;
+//   cursor: not-allowed;
+// }
+
+// .btn-upload {
+//   background-color: #27ae60;
+// }
+
+// .btn-upload:hover {
+//   background-color: #229954;
+// }
+
+// .page-info, .zoom-info {
+//   font-weight: bold;
+//   padding: 0 10px;
+//   color: rgb(30, 65, 219);
+// }
+
+// .pdf-container {
+//   flex: 1;
+//   overflow: auto;
+//   background-color: #525659;
+//   display: flex;
+//   justify-content: center;
+//   padding: 20px;
+// }
+
+// .loading {
+//   flex: 1;
+//   display: flex;
+//   justify-content: center;
+//   align-items: center;
+//   font-size: 20px;
+//   color: #7f8c8d;
+// }
+
+// .loading-overlay {
+//   position: absolute;
+//   top: 50%;
+//   left: 50%;
+//   transform: translate(-50%, -50%);
+//   background: white;
+//   padding: 20px;
+//   border-radius: 8px;
+//   box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+//   z-index: 1000;
+// }
+
+// .controls {
+//   display: flex;
+//   justify-content: space-between; /* Left and right alignment */
+//   align-items: center;
+//   padding: 10px;
+//   background-color: #f9f9f9; /* Optional for visibility */
+//   border-bottom: 1px solid #ccc;
+// }
+
+// .left-controls,
+// .right-controls {
+//   display: flex;
+//   align-items: center;
+//   gap: 10px; /* spacing between buttons */
+// }
+
+
+// ===========================
+// Variables & Theme
+// ===========================
+$primary-color: #2563eb;
+$primary-hover: #1d4ed8;
+$success-color: #10b981;
+$success-hover: #059669;
+$danger-color: #ef4444;
+$danger-hover: #dc2626;
+$warning-color: #f59e0b;
+$secondary-color: #6b7280;
+$dark-bg: #1f2937;
+$darker-bg: #111827;
+$light-text: #f9fafb;
+$gray-text: #9ca3af;
+$border-color: #374151;
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 16px;
+$spacing-xl: 24px;
+
+// Border radius
+$radius-sm: 4px;
+$radius-md: 6px;
+$radius-lg: 8px;
+$radius-xl: 12px;
+
+// Transitions
+$transition-fast: 150ms ease-in-out;
+$transition-normal: 250ms ease-in-out;
+$transition-slow: 350ms ease-in-out;
+
+// Shadows
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+// Z-index layers
+$z-base: 1;
+$z-toolbar: 10;
+$z-notification: 100;
+$z-indicator: 200;
+$z-tutorial: 1000;
+$z-loading: 1100;
+
+// ===========================
+// Main Container
+// ===========================
 .pdf-viewer-container {
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  font-family: Arial, sans-serif;
+  background: $darker-bg;
+  color: $light-text;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  overflow: hidden;
 }
 
+// ===========================
+// Toolbar
+// ===========================
 .toolbar {
-  background-color: #2c3e50;
-  color: white;
-  padding: 15px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+  z-index: $z-toolbar;
+  background: linear-gradient(180deg, $dark-bg 0%, rgba($dark-bg, 0.95) 100%);
+  padding: $spacing-lg;
+  box-shadow: $shadow-lg;
+  border-bottom: 1px solid $border-color;
+
+  h2 {
+    margin: 0 0 $spacing-md 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: $light-text;
+    letter-spacing: -0.02em;
+  }
 }
 
-.toolbar h2 {
-  margin: 0 0 15px 0;
-  font-size: 24px;
-}
-
-.file-upload {
-  margin-bottom: 15px;
-}
-
-.file-upload input[type="file"] {
-  display: none;
-}
-
+// ===========================
+// Controls Layout
+// ===========================
 .controls {
   display: flex;
-  gap: 10px;
+  gap: $spacing-lg;
   align-items: center;
   flex-wrap: wrap;
-}
 
-.btn {
-  background-color: #3498db;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.3s;
-}
-
-.btn:hover:not(:disabled) {
-  background-color: #2980b9;
-}
-
-.btn:disabled {
-  background-color: #95a5a6;
-  cursor: not-allowed;
-}
-
-.btn-upload {
-  background-color: #27ae60;
-}
-
-.btn-upload:hover {
-  background-color: #229954;
-}
-
-.page-info, .zoom-info {
-  font-weight: bold;
-  padding: 0 10px;
-  color: rgb(30, 65, 219);
-}
-
-.pdf-container {
-  flex: 1;
-  overflow: auto;
-  background-color: #525659;
-  display: flex;
-  justify-content: center;
-  padding: 20px;
-}
-
-.loading {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 20px;
-  color: #7f8c8d;
-}
-
-.loading-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-  z-index: 1000;
-}
-
-.controls {
-  display: flex;
-  justify-content: space-between; /* Left and right alignment */
-  align-items: center;
-  padding: 10px;
-  background-color: #f9f9f9; /* Optional for visibility */
-  border-bottom: 1px solid #ccc;
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: $spacing-md;
+  }
 }
 
 .left-controls,
+.middle-controls,
 .right-controls {
   display: flex;
   align-items: center;
-  gap: 10px; /* spacing between buttons */
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.left-controls {
+  flex: 0 0 auto;
+}
+
+.middle-controls {
+  flex: 1 1 auto;
+  justify-content: center;
+  gap: $spacing-xs;
+}
+
+.right-controls {
+  flex: 0 0 auto;
+}
+
+// ===========================
+// Buttons
+// ===========================
+.btn {
+  padding: $spacing-sm $spacing-lg;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all $transition-fast;
+  background: $secondary-color;
+  color: $light-text;
+  box-shadow: $shadow-sm;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover:not(:disabled) {
+    background: lighten($secondary-color, 10%);
+    box-shadow: $shadow-md;
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: $shadow-sm;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: $secondary-color;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+}
+
+.btn-search {
+  background: $success-color;
+  
+  &:hover:not(:disabled) {
+    background: $success-hover;
+  }
+}
+
+.btn-clear {
+  background: $danger-color;
+  padding: $spacing-sm $spacing-md;
+  
+  &:hover:not(:disabled) {
+    background: $danger-hover;
+  }
+}
+
+// ===========================
+// Info Display
+// ===========================
+.page-info,
+.zoom-info {
+  padding: $spacing-sm $spacing-md;
+  background: rgba($light-text, 0.05);
+  border-radius: $radius-md;
+  font-size: 14px;
+  font-weight: 500;
+  color: $light-text;
+  border: 1px solid $border-color;
+  white-space: nowrap;
+  min-width: 80px;
+  text-align: center;
+}
+
+// ===========================
+// Search Input
+// ===========================
+.search-input {
+  padding: $spacing-sm $spacing-md;
+  font-size: 14px;
+  border: 2px solid $border-color;
+  border-radius: $radius-md;
+  background: rgba($light-text, 0.05);
+  color: $light-text;
+  transition: all $transition-normal;
+  min-width: 200px;
+  outline: none;
+
+  &::placeholder {
+    color: $gray-text;
+  }
+
+  &:focus {
+    border-color: $primary-color;
+    background: rgba($light-text, 0.08);
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+
+  &:hover:not(:focus) {
+    border-color: lighten($border-color, 10%);
+  }
+
+  @media (max-width: 768px) {
+    min-width: 100%;
+  }
+}
+
+// ===========================
+// PDF Container - FIXED FOR PANNING
+// ===========================
+.pdf-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #1a1a1a;
+  touch-action: none;
+  
+  ::ng-deep {
+    .ng2-pdf-viewer-container {
+      position: absolute !important;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: visible !important;
+    }
+    
+    .pdfViewer {
+      overflow: visible !important;
+      position: relative !important;
+    }
+    
+    .page {
+      margin: 0 auto !important;
+    }
+
+    pdf-viewer {
+      display: block;
+      width: 100%;
+      height: 100%;
+      will-change: transform;
+    }
+  }
+}
+
+// ===========================
+// Notification System
+// ===========================
+.notification {
+  position: fixed;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  padding: $spacing-md $spacing-xl;
+  background: rgba($dark-bg, 0.95);
+  color: $light-text;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-xl;
+  font-size: 15px;
+  font-weight: 500;
+  opacity: 0;
+  visibility: hidden;
+  transition: all $transition-normal;
+  z-index: $z-notification;
+  border: 1px solid $border-color;
+  backdrop-filter: blur(10px);
+  max-width: 90%;
+  text-align: center;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+// ===========================
+// Gesture Indicator
+// ===========================
+.gesture-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  padding: $spacing-xl $spacing-xl * 2;
+  background: rgba($primary-color, 0.95);
+  color: white;
+  border-radius: $radius-xl;
+  font-size: 24px;
+  font-weight: 700;
+  opacity: 0;
+  visibility: hidden;
+  transition: all $transition-normal;
+  z-index: $z-indicator;
+  box-shadow: $shadow-xl;
+  letter-spacing: 0.05em;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+// ===========================
+// Large Page Number
+// ===========================
+.large-page-number {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.8);
+  padding: $spacing-lg $spacing-xl;
+  background: rgba($dark-bg, 0.95);
+  color: $light-text;
+  border-radius: $radius-xl;
+  font-size: 32px;
+  font-weight: 700;
+  opacity: 0;
+  visibility: hidden;
+  transition: all $transition-normal;
+  z-index: $z-indicator;
+  box-shadow: $shadow-xl;
+  border: 2px solid $border-color;
+  backdrop-filter: blur(10px);
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+// ===========================
+// Pan Mode Indicator
+// ===========================
+.pan-mode-indicator {
+  position: fixed;
+  top: 80px;
+  right: $spacing-xl;
+  padding: $spacing-md $spacing-lg;
+  background: rgba($warning-color, 0.95);
+  color: white;
+  border-radius: $radius-lg;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0;
+  visibility: hidden;
+  transition: all $transition-normal;
+  z-index: $z-indicator;
+  box-shadow: $shadow-lg;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.pan-grid {
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba($warning-color, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba($warning-color, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all $transition-normal;
+  z-index: $z-base;
+  pointer-events: none;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+// ===========================
+// Two-Finger Indicator
+// ===========================
+.two-finger-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: $spacing-lg $spacing-xl;
+  background: rgba($primary-color, 0.95);
+  color: white;
+  border-radius: $radius-xl;
+  font-size: 16px;
+  font-weight: 600;
+  opacity: 0;
+  visibility: hidden;
+  transition: all $transition-normal;
+  z-index: $z-indicator;
+  box-shadow: $shadow-xl;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+// ===========================
+// Edge Flash Feedback
+// ===========================
+.edge-flash {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all $transition-fast;
+  z-index: $z-indicator;
+  pointer-events: none;
+
+  &.left {
+    left: 0;
+    background: linear-gradient(to right, $primary-color, transparent);
+  }
+
+  &.right {
+    right: 0;
+    background: linear-gradient(to left, $primary-color, transparent);
+  }
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+    width: 20px;
+  }
+}
+
+// ===========================
+// Tutorial Overlay
+// ===========================
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba($darker-bg, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl;
+  opacity: 0;
+  visibility: hidden;
+  transition: all $transition-slow;
+  z-index: $z-tutorial;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.tutorial-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: $spacing-xl * 2;
+  color: $light-text;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.tutorial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $spacing-xl;
+  max-width: 900px;
+  width: 100%;
+  margin-bottom: $spacing-xl * 2;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-lg;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tutorial-item {
+  background: rgba($dark-bg, 0.8);
+  border: 2px solid $border-color;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  text-align: center;
+  transition: all $transition-normal;
+
+  &:hover {
+    transform: translateY(-5px);
+    border-color: $primary-color;
+    box-shadow: $shadow-xl;
+  }
+}
+
+.tutorial-icon {
+  font-size: 48px;
+  margin-bottom: $spacing-md;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+}
+
+.tutorial-label {
+  font-size: 18px;
+  font-weight: 600;
+  color: $light-text;
+  margin-bottom: $spacing-xs;
+}
+
+.tutorial-desc {
+  font-size: 14px;
+  color: $gray-text;
+  font-weight: 500;
+}
+
+.tutorial-skip {
+  padding: $spacing-md $spacing-xl * 2;
+  font-size: 16px;
+  font-weight: 600;
+  background: $primary-color;
+  color: white;
+  border: none;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: all $transition-normal;
+  box-shadow: $shadow-lg;
+
+  &:hover {
+    background: $primary-hover;
+    transform: translateY(-2px);
+    box-shadow: $shadow-xl;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// ===========================
+// Loading Overlay
+// ===========================
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba($darker-bg, 0.98);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: $z-loading;
+  backdrop-filter: blur(5px);
+
+  p {
+    margin: $spacing-md 0 0 0;
+    font-size: 16px;
+    color: $gray-text;
+    font-weight: 500;
+  }
+}
+
+// ===========================
+// Spinner Animation
+// ===========================
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba($light-text, 0.1);
+  border-top-color: $primary-color;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ===========================
+// Utility Classes
+// ===========================
+.show {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+// ===========================
+// Accessibility
+// ===========================
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// Focus styles for keyboard navigation
+*:focus-visible {
+  outline: 2px solid $primary-color;
+  outline-offset: 2px;
+}
+
+// ===========================
+// Print Styles
+// ===========================
+@media print {
+  .toolbar,
+  .notification,
+  .gesture-indicator,
+  .pan-mode-indicator,
+  .tutorial-overlay,
+  .loading-overlay {
+    display: none !important;
+  }
+
+  .pdf-container {
+    overflow: visible !important;
+  }
 }
