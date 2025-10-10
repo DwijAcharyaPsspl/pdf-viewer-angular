@@ -24,11 +24,36 @@
           placeholder="Search text..." 
           class="search-input"
           [(ngModel)]="searchText"
+          (ngModelChange)="onSearchInputChange($event)"
           (keypress)="onSearchKeyPress($event)"
           (focus)="isSearching = true"
           (blur)="isSearching = false"
         />
         <button (click)="performSearch()" class="btn btn-search">Search</button>
+        
+        <!-- Search navigation buttons - shown when there are results -->
+        <button 
+          (click)="findPrevious()" 
+          class="btn btn-nav"
+          *ngIf="hasSearchResults"
+          title="Previous match"
+        >
+          ◀ Prev
+        </button>
+        
+        <span class="search-results-info" *ngIf="hasSearchResults">
+          {{ currentMatchIndex }}/{{ totalMatches }}
+        </span>
+        
+        <button 
+          (click)="findNext()" 
+          class="btn btn-nav"
+          *ngIf="hasSearchResults"
+          title="Next match"
+        >
+          Next ▶
+        </button>
+        
         <button 
           (click)="clearSearch()" 
           class="btn btn-clear"
@@ -55,7 +80,7 @@
       [rotation]="rotation"
       [show-all]="false"
       [original-size]="true"
-      [render-text]="false"
+      [render-text]="true"
       [fit-to-page]="false"
       [autoresize]="false"
       (after-load-complete)="afterLoadComplete($event)"
@@ -84,10 +109,6 @@
 
   <div class="pan-grid" [class.show]="isPanMode"></div>
 
-  <div class="two-finger-indicator" [class.show]="twoFingerIndicatorVisible">
-    Two-Finger Pan Mode
-  </div>
-
   <!-- Edge flash feedback -->
   <div class="edge-flash left" [class.show]="leftEdgeFlash"></div>
   <div class="edge-flash right" [class.show]="rightEdgeFlash"></div>
@@ -115,6 +136,16 @@
         <div class="tutorial-icon">⬇️</div>
         <div class="tutorial-label">Swipe Down</div>
         <div class="tutorial-desc">Zoom Out</div>
+      </div>
+      <div class="tutorial-item">
+        <div class="tutorial-icon">👆👆</div>
+        <div class="tutorial-label">Double Tap</div>
+        <div class="tutorial-desc">Open Search</div>
+      </div>
+      <div class="tutorial-item">
+        <div class="tutorial-icon">⏱️</div>
+        <div class="tutorial-label">Long Press</div>
+        <div class="tutorial-desc">Toggle Pan Mode</div>
       </div>
     </div>
     <button class="tutorial-skip" (click)="hideTutorial()">Got it!</button>

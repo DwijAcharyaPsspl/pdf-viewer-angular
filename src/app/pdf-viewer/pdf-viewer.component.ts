@@ -8,6 +8,7 @@ interface TouchInfo {
   y: number;
   startX: number;
   startY: number;
+  time: number;
 }
 
 @Component({
@@ -21,13 +22,20 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
   pdfSrc: string | any = 'assets/mongodb.pdf';
   page: number = 1;
   totalPages: number = 0;
-  zoom: number = 1.0;
+  zoom: number = 2.0;
   rotation: number = 0;
   isLoading: boolean = true;
   
   // Search state
   searchText: string = '';
   isSearching: boolean = false;
+  hasSearchResults: boolean = false;
+  currentMatchIndex: number = 0;
+  totalMatches: number = 0;
+  
+  // Store listener references for cleanup
+  private findControllerListener: any = null;
+  private matchesCountListener: any = null;
   
   // UI state
   notification: string = '';
@@ -38,7 +46,6 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
   showTutorial: boolean = false;
   largePageNumber: string = '';
   showLargePageNumber: boolean = false;
-  twoFingerIndicatorVisible: boolean = false;
   leftEdgeFlash: boolean = false;
   rightEdgeFlash: boolean = false;
 
@@ -59,7 +66,9 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
     maxZoom: 3.5,
     minZoom: 0.5,
     panModeTimeout: 4000,
-    actionDebounceMs: 250
+    actionDebounceMs: 250,
+    doubleTapMaxDelay: 400,
+    doubleTapMaxDistance: 50
   };
 
   // Touch/gesture state
@@ -83,10 +92,16 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
   private hasSeenTutorial = false;
 
   // Two-finger gesture state
-  private activeTouches: { [key: number]: TouchInfo } = {};
-  private isTwoFingerGesture = false;
-  private twoFingerPanActive = false;
-  private twoFingerStartDistance = 0;
+  private activeTouches: Map<number, TouchInfo> = new Map();
+
+  // Double tap for search
+  private lastTapTime: number = 0;
+  private lastTapX: number = 0;
+  private lastTapY: number = 0;
+  
+  // Auto-search debounce
+  private searchDebounceTimeout: any = null;
+  private readonly SEARCH_DEBOUNCE_DELAY = 1500;
 
   ngAfterViewInit(): void {
     this.setupGestureListeners();
@@ -95,6 +110,18 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.clearAllTimers();
     this.removeGestureListeners();
+    this.removeSearchListeners();
+  }
+
+  private removeSearchListeners(): void {
+    if (this.pdfComponent && this.pdfComponent.eventBus) {
+      if (this.findControllerListener) {
+        this.pdfComponent.eventBus.off('updatefindcontrolstate', this.findControllerListener);
+      }
+      if (this.matchesCountListener) {
+        this.pdfComponent.eventBus.off('updatefindmatchescount', this.matchesCountListener);
+      }
+    }
   }
 
   private setupGestureListeners(): void {
@@ -133,41 +160,29 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
     if (this.panModeTimeout) clearTimeout(this.panModeTimeout);
     if (this.longPressTimer) clearTimeout(this.longPressTimer);
     if (this.tutorialTimeout) clearTimeout(this.tutorialTimeout);
+    if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
   }
 
   // Touch event handlers
   private handleTouchStart(e: TouchEvent): void {
     e.preventDefault();
 
+    const now = Date.now();
+
+    // Add all new touches
     for (let i = 0; i < e.touches.length; i++) {
       const touch = e.touches[i];
-      this.activeTouches[touch.identifier] = {
+      this.activeTouches.set(touch.identifier, {
         x: touch.clientX,
         y: touch.clientY,
         startX: touch.clientX,
-        startY: touch.clientY
-      };
+        startY: touch.clientY,
+        time: now
+      });
     }
 
-    if (e.touches.length === 2) {
-      this.isTwoFingerGesture = true;
-      this.twoFingerPanActive = false;
-
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-
-      const dx = touch2.clientX - touch1.clientX;
-      const dy = touch2.clientY - touch1.clientY;
-      this.twoFingerStartDistance = Math.sqrt(dx * dx + dy * dy);
-
-      if (this.longPressTimer) {
-        clearTimeout(this.longPressTimer);
-        this.longPressTimer = null;
-      }
-
-      this.twoFingerIndicatorVisible = true;
-    } else if (e.touches.length === 1) {
-      this.isTwoFingerGesture = false;
+    // Handle single finger gestures
+    if (e.touches.length === 1) {
       const touch = e.touches[0];
       this.handleGestureStart(touch.clientX, touch.clientY);
     }
@@ -176,43 +191,18 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
   private handleTouchMove(e: TouchEvent): void {
     e.preventDefault();
 
+    // Update positions
     for (let i = 0; i < e.touches.length; i++) {
       const touch = e.touches[i];
-      if (this.activeTouches[touch.identifier]) {
-        this.activeTouches[touch.identifier].x = touch.clientX;
-        this.activeTouches[touch.identifier].y = touch.clientY;
+      const stored = this.activeTouches.get(touch.identifier);
+      if (stored) {
+        stored.x = touch.clientX;
+        stored.y = touch.clientY;
       }
     }
 
-    if (e.touches.length === 2 && this.isTwoFingerGesture) {
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-
-      const centerX = (touch1.clientX + touch2.clientX) / 2;
-      const centerY = (touch1.clientY + touch2.clientY) / 2;
-
-      const dx = touch2.clientX - touch1.clientX;
-      const dy = touch2.clientY - touch1.clientY;
-      const currentDistance = Math.sqrt(dx * dx + dy * dy);
-
-      const distanceChange = Math.abs(currentDistance - this.twoFingerStartDistance);
-
-      if (distanceChange < 30) {
-        if (!this.twoFingerPanActive) {
-          this.twoFingerPanActive = true;
-          this.lastPanX = centerX;
-          this.lastPanY = centerY;
-        } else {
-          const panDeltaX = centerX - this.lastPanX;
-          const panDeltaY = centerY - this.lastPanY;
-          this.panOffsetX += panDeltaX;
-          this.panOffsetY += panDeltaY;
-          this.lastPanX = centerX;
-          this.lastPanY = centerY;
-          this.applyPanTransform();
-        }
-      }
-    } else if (e.touches.length === 1) {
+    // Handle single finger movement
+    if (e.touches.length === 1) {
       const touch = e.touches[0];
       this.handleGestureMove(touch.clientX, touch.clientY);
     }
@@ -221,19 +211,14 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
   private handleTouchEnd(e: TouchEvent): void {
     e.preventDefault();
 
+    // Remove ended touches
     for (let i = 0; i < e.changedTouches.length; i++) {
       const touch = e.changedTouches[i];
-      delete this.activeTouches[touch.identifier];
+      this.activeTouches.delete(touch.identifier);
     }
 
-    if (this.isTwoFingerGesture && Object.keys(this.activeTouches).length < 2) {
-      this.isTwoFingerGesture = false;
-      this.twoFingerPanActive = false;
-      this.twoFingerIndicatorVisible = false;
-      return;
-    }
-
-    if (e.changedTouches.length > 0 && !this.isTwoFingerGesture) {
+    // Handle single finger gesture end
+    if (e.changedTouches.length > 0 && e.touches.length === 0) {
       const touch = e.changedTouches[0];
       this.handleGestureEnd(touch.clientX, touch.clientY);
     }
@@ -241,10 +226,7 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
 
   private handleTouchCancel(e: TouchEvent): void {
     e.preventDefault();
-    this.activeTouches = {};
-    this.isTwoFingerGesture = false;
-    this.twoFingerPanActive = false;
-    this.twoFingerIndicatorVisible = false;
+    this.activeTouches.clear();
     this.handleGestureCancel();
   }
 
@@ -345,6 +327,12 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
+    // Check for tap (potential double tap)
+    if (!this.hasMoved && distance < this.config.tapMovementThreshold && deltaTime < 500) {
+      this.handleTap(x, y, touchEndTime);
+      return;
+    }
+
     if (distance < this.config.swipeThreshold) return;
     if (deltaTime > this.config.swipeTimeLimit) return;
     if (velocity < this.config.minSwipeVelocity) return;
@@ -378,6 +366,36 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
         this.zoomOut();
         break;
     }
+  }
+
+  private handleTap(x: number, y: number, time: number): void {
+    const timeSinceLastTap = time - this.lastTapTime;
+    const distanceFromLastTap = Math.sqrt(
+      Math.pow(x - this.lastTapX, 2) + Math.pow(y - this.lastTapY, 2)
+    );
+
+    // Check if this is a double tap
+    if (timeSinceLastTap < this.config.doubleTapMaxDelay && 
+        distanceFromLastTap < this.config.doubleTapMaxDistance) {
+      // Double tap detected!
+      console.log('Double tap detected!');
+      this.openSearch();
+      // Reset to prevent triple tap
+      this.lastTapTime = 0;
+      this.lastTapX = 0;
+      this.lastTapY = 0;
+    } else {
+      // First tap, record it
+      this.lastTapTime = time;
+      this.lastTapX = x;
+      this.lastTapY = y;
+    }
+  }
+
+  private openSearch(): void {
+    this.displayNotification('Search Mode - Double tap detected!');
+    this.displayGestureIndicator('🔍 SEARCH');
+    this.focusSearchInput();
   }
 
   private handleGestureCancel(): void {
@@ -417,7 +435,6 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
   private applyPanTransform(): void {
     if (!this.pdfContainer) return;
     
-    // Apply transform to the ng2-pdf-viewer-container which holds the actual PDF content
     const container = this.pdfContainer.nativeElement.querySelector('.ng2-pdf-viewer-container');
     if (container) {
       (container as HTMLElement).style.transform = 
@@ -433,6 +450,9 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
       if (this.isPanMode) {
         this.isPanMode = false;
         this.displayNotification('Auto-exit Pan Mode');
+        this.panOffsetX = 0;
+        this.panOffsetY = 0;
+        this.applyPanTransform()
       }
     }, this.config.panModeTimeout);
   }
@@ -487,16 +507,40 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
 
   onSearchInputChange(value: string): void {
     this.searchText = value;
+    
+    if (this.searchDebounceTimeout) {
+      clearTimeout(this.searchDebounceTimeout);
+    }
+    
+    if (!value || !value.trim()) {
+      this.clearSearch();
+      return;
+    }
+    
+    this.searchDebounceTimeout = setTimeout(() => {
+      this.performAutoSearch();
+    }, this.SEARCH_DEBOUNCE_DELAY);
+  }
+
+  performAutoSearch(): void {
+    if (!this.searchText || !this.searchText.trim()) {
+      return;
+    }
+
+    this.search(this.searchText.trim());
   }
 
   performSearch(): void {
+    if (this.searchDebounceTimeout) {
+      clearTimeout(this.searchDebounceTimeout);
+    }
+    
     if (!this.searchText || !this.searchText.trim()) {
       this.displayNotification('Enter search term');
       return;
     }
 
     this.search(this.searchText.trim());
-    this.displayNotification(`Searching: ${this.searchText.trim()}`);
     
     if (this.searchInput && this.searchInput.nativeElement) {
       this.searchInput.nativeElement.blur();
@@ -504,8 +548,68 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
     this.isSearching = false;
   }
 
+  findNext(): void {
+    if (!this.hasSearchResults || !this.pdfComponent || !this.pdfComponent.eventBus) {
+      this.displayNotification('No search results');
+      return;
+    }
+
+    console.log('Finding next match...');
+    
+    // Don't show "No matches" notification during navigation
+    this.pdfComponent.eventBus.dispatch('find', {
+      query: this.searchText,
+      type: 'again',
+      caseSensitive: false,
+      findPrevious: false,
+      highlightAll: true,
+      phraseSearch: true
+    });
+    
+    // Small delay to let the match counter update
+    setTimeout(() => {
+      if (this.hasSearchResults) {
+        this.displayNotification(`Match ${this.currentMatchIndex}/${this.totalMatches}`);
+      }
+    }, 100);
+  }
+
+  findPrevious(): void {
+    if (!this.hasSearchResults || !this.pdfComponent || !this.pdfComponent.eventBus) {
+      this.displayNotification('No search results');
+      return;
+    }
+
+    console.log('Finding previous match...');
+    
+    // Don't show "No matches" notification during navigation
+    this.pdfComponent.eventBus.dispatch('find', {
+      query: this.searchText,
+      type: 'again',
+      caseSensitive: false,
+      findPrevious: true,
+      highlightAll: true,
+      phraseSearch: true
+    });
+    
+    // Small delay to let the match counter update
+    setTimeout(() => {
+      if (this.hasSearchResults) {
+        this.displayNotification(`Match ${this.currentMatchIndex}/${this.totalMatches}`);
+      }
+    }, 100);
+  }
+
   clearSearch(): void {
     this.searchText = '';
+    this.hasSearchResults = false;
+    this.currentMatchIndex = 0;
+    this.totalMatches = 0;
+    
+    if (this.searchDebounceTimeout) {
+      clearTimeout(this.searchDebounceTimeout);
+    }
+    
     if (this.pdfComponent && this.pdfComponent.eventBus) {
       this.pdfComponent.eventBus.dispatch('find', {
         query: '',
@@ -521,6 +625,9 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
 
   onSearchKeyPress(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
+      if (this.searchDebounceTimeout) {
+        clearTimeout(this.searchDebounceTimeout);
+      }
       this.performSearch();
     }
   }
@@ -532,6 +639,76 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
+    console.log('Starting search for:', stringToSearch);
+
+    // Remove old listeners if they exist
+    if (this.findControllerListener) {
+      this.pdfComponent.eventBus.off('updatefindcontrolstate', this.findControllerListener);
+    }
+    if (this.matchesCountListener) {
+      this.pdfComponent.eventBus.off('updatefindmatchescount', this.matchesCountListener);
+    }
+
+    // Create and store match count listener
+    this.matchesCountListener = (event: any) => {
+      console.log('Match count update:', event);
+      if (event.matchesCount) {
+        this.totalMatches = event.matchesCount.total || 0;
+        this.currentMatchIndex = event.matchesCount.current || 0;
+        this.hasSearchResults = this.totalMatches > 0;
+        
+        if (this.hasSearchResults) {
+          console.log(`Search results: ${this.currentMatchIndex}/${this.totalMatches}`);
+          this.displayNotification(`Match ${this.currentMatchIndex}/${this.totalMatches}`);
+        }
+      }
+    };
+
+    // Create and store find controller listener
+    this.findControllerListener = (event: any) => {
+      console.log('Find controller state:', event);
+      
+      if (event.state === 3) {
+        // Not found - only show if we're doing initial search, not navigation
+        if (!this.hasSearchResults) {
+          this.hasSearchResults = false;
+          this.totalMatches = 0;
+          this.currentMatchIndex = 0;
+          this.displayNotification('No matches found');
+        }
+        return;
+      }
+      
+      // Navigate to the page with the match
+      if (event.state === 0 || event.state === 1 || event.state === 2) {
+        let foundPage = null;
+        
+        if (event.pageIdx !== undefined && event.pageIdx !== null) {
+          foundPage = event.pageIdx + 1;
+        } else if (event.source && event.source.selected && event.source.selected.pageIdx !== undefined) {
+          foundPage = event.source.selected.pageIdx + 1;
+        }
+        
+        if (foundPage && foundPage !== this.page) {
+          console.log('Navigating to page:', foundPage);
+          this.page = foundPage;
+          this.displayLargePageNumber();
+        }
+        
+        // Update match info if available
+        if (event.matchesCount) {
+          this.totalMatches = event.matchesCount.total || 0;
+          this.currentMatchIndex = event.matchesCount.current || 0;
+          this.hasSearchResults = this.totalMatches > 0;
+        }
+      }
+    };
+
+    // Add new listeners
+    this.pdfComponent.eventBus.on('updatefindmatchescount', this.matchesCountListener);
+    this.pdfComponent.eventBus.on('updatefindcontrolstate', this.findControllerListener);
+
+    // Dispatch find command - this searches the ENTIRE PDF
     this.pdfComponent.eventBus.dispatch('find', {
       query: stringToSearch,
       type: 'again',
