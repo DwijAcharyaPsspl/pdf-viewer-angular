@@ -216,7 +216,7 @@ $z-loading: 1100;
 .right-controls {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
+  gap: $spacing-lg;
   flex-wrap: wrap;
 
   @media (max-width: 768px) {
@@ -232,7 +232,11 @@ $z-loading: 1100;
 .middle-controls {
   flex: 1 1 auto;
   justify-content: center;
-  gap: $spacing-xs;
+  gap: $spacing-lg;
+}
+
+.search-results-info {
+  font-size: 24px;
 }
 
 .right-controls {
@@ -244,10 +248,10 @@ $z-loading: 1100;
 // ===========================
 .btn {
   padding: $spacing-sm $spacing-lg;
-  font-size: 14px;
+  font-size: 28px;
   font-weight: 500;
   border: none;
-  border-radius: $radius-md;
+  border-radius: $radius-xl;
   cursor: pointer;
   transition: all $transition-fast;
   background: $secondary-color;
@@ -304,8 +308,8 @@ $z-loading: 1100;
 .zoom-info {
   padding: $spacing-sm $spacing-md;
   background: rgba($light-text, 0.05);
-  border-radius: $radius-md;
-  font-size: 14px;
+  border-radius: $radius-xl;
+  font-size: 21px;
   font-weight: 500;
   color: $light-text;
   border: 1px solid $border-color;
@@ -319,9 +323,9 @@ $z-loading: 1100;
 // ===========================
 .search-input {
   padding: $spacing-sm $spacing-md;
-  font-size: 14px;
+  font-size: 22px;
   border: 2px solid $border-color;
-  border-radius: $radius-md;
+  border-radius: $radius-xl;
   background: rgba($light-text, 0.05);
   color: $light-text;
   transition: all $transition-normal;

@@ -67,8 +67,8 @@ export class PdfViewerComponent implements AfterViewInit, OnDestroy {
     minZoom: 0.5,
     panModeTimeout: 4000,
     actionDebounceMs: 250,
-    doubleTapMaxDelay: 400,
-    doubleTapMaxDistance: 50
+    doubleTapMaxDelay: 800,
+    doubleTapMaxDistance: 125
   };
 
   // Touch/gesture state
