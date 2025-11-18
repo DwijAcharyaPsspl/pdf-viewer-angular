@@ -19,7 +19,7 @@ interface TouchInfo {
   styleUrl: './pdf-viewer.component.scss'
 })
 export class PdfViewerComponent implements AfterViewInit, OnDestroy {
-  pdfSrc: string | any = 'assets/mongodb.pdf';
+  pdfSrc: string | any = 'assets/repair_order.pdf';
   page: number = 1;
   totalPages: number = 0;
   zoom: number = 2.0;
